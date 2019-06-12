@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce HiPay Comprafacil Multibanco
 Plugin URI: http://www.hipaycomprafacil.com
 Description: Plugin WooCommerce para Pagamentos por Multibanco via HiPay. Para utilizar efetue registo em <a href="http://www.hipaycomprafacil.pt" target="_blank">HiPay Comprafacil</a> para utilizar este m&oacute;dulo. Para mais informa&ccedil;&otilde;es envie email para <a href="mailto:hipay.portugal@hipay.com" target="_blank">hipay.portugal@hipay.com</a>.
-Version: 1.4.1
+Version: 1.4.2
 Author: Hi-Pay Portugal
 Author URI: https://www.hipaycomprafacil.com
 */
@@ -20,23 +20,12 @@ function woocommerce_hipaymultibanco_init() {
 
 			global $woocommerce;
 
-			$this->woocommerce_version = $woocommerce->version;
-			if ( version_compare( $woocommerce->version, '3.0', ">=" ) ) 
-				$this->woocommerce_version_check = true;
-			else
-				$this->woocommerce_version_check = false;
-	
-			$this->php_version = phpversion();
-
 			$this->id = 'hipaymultibanco';
-			//$this->icon = apply_filters('woocommerce_hipaymultibanco_icon', '');
 			$this->icon 			= WP_PLUGIN_URL . "/" . plugin_basename( dirname(__FILE__)) . '/images/mb_choose.png';
 			$this->has_fields = false;
 			$this->method_title     = __('HiPay Wallet Multibanco', 'woocommerce' );
-
 			$this->init_form_fields();
 			$this->init_settings();
-
 			$this->title 		= $this->get_option('title');
 			$this->description 	= $this->get_option('description');
 			$this->entidade 	= $this->get_option('entidade');
@@ -313,10 +302,7 @@ function woocommerce_hipaymultibanco_init() {
             global $myref;
 
 			$order = new WC_Order( $order_id );
-			if ($this->woocommerce_version_check)
-				$order_total = $order->get_total();
-			else
-				$order_total = $order->order_total;
+			$order_total = $order->get_total();
 
 			echo '<table cellpadding="6" cellspacing="2" style="width: 350px; height: 55px; margin: 10px 0 2px 0;border: 1px solid #ddd"><tr>
 						<td style="background-color: #ccc;color:#313131;text-align:center;" colspan="3">'.$this->description_ref .'</td>
@@ -349,10 +335,7 @@ function woocommerce_hipaymultibanco_init() {
 		        global $wpdb;
 
 			$order = new WC_Order( $order_id );
-			if ($this->woocommerce_version_check)
-				$order_total = $order->get_total();
-			else
-				$order_total = $order->order_total;
+			$order_total = $order->get_total();
 
 			$myref = $this->GenerateReference($order_id,$order_total);
 
@@ -378,17 +361,10 @@ function woocommerce_hipaymultibanco_init() {
 			global $woocommerce;
             global $wpdb;
 
-			if ($this->woocommerce_version_check){
-				$order_total = $order->get_total();
-				$order_status = $order->get_status();
-				$order_payment_method = get_post_meta( $order->get_id(), '_payment_method', true );
-       			$order_id = $order->get_id();
-
-			} else {
-				$order_total = $order->order_total;
-				$order_status = $order->status;
-				$order_payment_method = $order->payment_method;
-			}
+			$order_total = $order->get_total();
+			$order_status = $order->get_status();
+			$order_payment_method = get_post_meta( $order->get_id(), '_payment_method', true );
+			$order_id = $order->get_id();
 
 	    	if ( $order_status !== 'on-hold' || $order_payment_method !== 'hipaymultibanco') return;
 
@@ -439,12 +415,7 @@ function woocommerce_hipaymultibanco_init() {
 					//get order
 					$order = new WC_Order( $fivesdraft->order_id );
 					//get status
-
-					if ($this->woocommerce_version_check){
-						$order_c_id = $order->get_id();
-					} else {
-						$order_c_id = $order->id;
-					}
+					$order_c_id = $order->get_id();
 
 					$cur_payment_method = get_post_meta( $order_c_id, '_payment_method', true );
 					//update order if! wc-pending or wc-on-hold
