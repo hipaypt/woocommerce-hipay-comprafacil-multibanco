@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce HiPay Comprafacil Multibanco
 Plugin URI: http://www.hipaycomprafacil.com
 Description: Plugin WooCommerce para Pagamentos por Multibanco via HiPay. Para utilizar efetue registo em <a href="http://www.hipaycomprafacil.pt" target="_blank">HiPay Comprafacil</a> para utilizar este m&oacute;dulo. Para mais informa&ccedil;&otilde;es envie email para <a href="mailto:hipay.portugal@hipay.com" target="_blank">hipay.portugal@hipay.com</a>.
-Version: 1.4.2
+Version: 1.4.3
 Author: Hi-Pay Portugal
 Author URI: https://www.hipaycomprafacil.com
 */
@@ -323,7 +323,6 @@ function woocommerce_hipaymultibanco_init() {
 				</table>';
 
 				$woocommerce->cart->empty_cart();
-				unset($_SESSION['order_awaiting_payment']);
 
 		}
 
@@ -346,13 +345,15 @@ function woocommerce_hipaymultibanco_init() {
 			$wpdb->insert( $table_name, array( 'entity' => $myref->entity, 'reference' => $myref->reference, 'timeLimit' => $this->timeLimitDays, 'expire_date' => $expire_date, 'order_id' => $order_id ) );
 
 			$order->update_status('on-hold', __('Aguardar Pagamento por Multibanco.', 'woothemes'));
-			if ($this->stockonpayment != "yes") $order->reduce_order_stock();
-
+			if ($this->stockonpayment != "yes") {
+				wc_reduce_stock_levels($order_id);
+			}
+			
 			$order->add_order_note('Entidade: ' .$myref->entity . ' Ref. Multibanco: '. $myref->reference );
 
 	    	return array(
 	        'result' 	=> 'success',
-	        'redirect'	=> add_query_arg( 'ent', $myref->entity, add_query_arg( 'ref', $myref->reference, add_query_arg( 'order', $order_id, add_query_arg('key', $order->get_order_key(), $order->get_checkout_order_received_url() ))))
+	        'redirect'	=> add_query_arg( 'ent', $myref->entity, add_query_arg( 'ref', $myref->reference, add_query_arg( 'order-received', $order_id, add_query_arg('key', $order->get_order_key(), $order->get_checkout_order_received_url() ))))
 	      	);
     	}
 
@@ -492,7 +493,7 @@ function woocommerce_hipaymultibanco_init() {
 							echo "PAGA";
 							$order = new WC_Order( $order_id );
 							if ($this->stockonpayment == "yes") {
-								$order->reduce_order_stock();
+								wc_reduce_stock_levels($order_id);
 								$order->add_order_note('Stock atualizado depois de pagamento' );
 							}
 							$order->update_status('processing', __("Ref. MULTIBANCO Paga", "woothemes" ).$transid, 0 );
