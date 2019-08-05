@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce HiPay Comprafacil Multibanco
 Plugin URI: http://www.hipaycomprafacil.com
 Description: Plugin WooCommerce para Pagamentos por Multibanco via HiPay. Para utilizar efetue registo em <a href="http://www.hipaycomprafacil.pt" target="_blank">HiPay Comprafacil</a> para utilizar este m&oacute;dulo. Para mais informa&ccedil;&otilde;es envie email para <a href="mailto:hipay.portugal@hipay.com" target="_blank">hipay.portugal@hipay.com</a>.
-Version: 1.4.3
+Version: 1.4.4
 Author: Hi-Pay Portugal
 Author URI: https://www.hipaycomprafacil.com
 */
@@ -31,18 +31,20 @@ function woocommerce_hipaymultibanco_init() {
 			$this->entidade 	= $this->get_option('entidade');
 			$this->sandbox 		= $this->get_option('sandbox');
 			$this->username 	= $this->get_option('hw_username');
+			$this->max_amount	= $this->get_option('hw_max_amount');
 			$this->password 	= $this->get_option('hw_password');
 			$this->salt		= $this->get_option('salt');
 			$this->stockonpayment 	= $this->get_option('stockonpayment');
 			$this->reference	= "";
 			$this->description_ref 	= $this->get_option('description_ref');
 			$this->timeLimitDays 	= $this->get_option('timeLimitDays');
+			if ($this->max_amount == "") $this->max_amount = 0;
 
 			add_action('woocommerce_api_wc_hipaymultibanco', array($this, 'check_callback_response') );
 			add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 			add_action('woocommerce_thankyou_hipaymultibanco', array($this, 'thanks_page'));
 			add_action('woocommerce_email_before_order_table', array($this, 'email_instructions'), 9, 3);
-
+			add_action( 'woocommerce_view_order', array($this, 'thanks_page') );
 
 		}
 
@@ -138,6 +140,13 @@ function woocommerce_hipaymultibanco_init() {
 							'description' => __( 'Password para webservice Multibanco.', 'woocommerce' ),
 							'required' => true
 						),
+			'hw_max_amount' => array(
+							'title' => __( 'Valor máximo permitido', 'woocommerce' ),
+							'type' => 'text',
+							'description' => __( '0 para sem limite.', 'woocommerce' ),
+							'required' => true,
+							'default' => '0'
+						),
 			'stockonpayment' => array(
 							'title' => __( 'Reduzir stock no pagamento', 'woocommerce' ),
 							'type' => 'checkbox',
@@ -152,9 +161,6 @@ function woocommerce_hipaymultibanco_init() {
 							'required' => true,
 							'default' => uniqid()
 						),
-
-
-
 			);
 
 		}
@@ -300,29 +306,33 @@ function woocommerce_hipaymultibanco_init() {
 
 			global $woocommerce;
             global $myref;
-
+			global $wpdb;
+			
 			$order = new WC_Order( $order_id );
 			$order_total = $order->get_total();
 
-			echo '<table cellpadding="6" cellspacing="2" style="width: 350px; height: 55px; margin: 10px 0 2px 0;border: 1px solid #ddd"><tr>
-						<td style="background-color: #ccc;color:#313131;text-align:center;" colspan="3">'.$this->description_ref .'</td>
-					</tr>
-					<tr>
-						<td rowspan="3" style="width:110px;padding: 0px 5px 0px 5px;vertical-align: middle;"><img src="'.WP_PLUGIN_URL . "/" . plugin_basename( dirname(__FILE__)) . '/images/mb_payment.jpg" style="margin-bottom: 0px; margin-right: 0px;"/></td>
-						<td style="width:100px;">ENTIDADE:</td>
-						<td style="font-weight:bold;width:245px;">'.$_GET["ent"] .'</td>
-					</tr>
-					<tr>
-						<td>REFER&Ecirc;NCIA:</td>
-						<td style="font-weight:bold;">'.$_GET["ref"].'</td>
-					</tr>
-					<tr>
-						<td>VALOR:</td>
-						<td style="font-weight:bold;">'.$order_total.' &euro;</td>
-					</tr>
-				</table>';
-
-				$woocommerce->cart->empty_cart();
+			$fivesdrafts = $wpdb->get_results( "SELECT ID, entity,reference, order_id, processed FROM " . $wpdb->prefix . "woocommerce_hipay_mb WHERE order_id = '" . $order_id . "'"	);
+			foreach ( $fivesdrafts as $fivesdraft )
+			{			
+				echo '<table cellpadding="6" cellspacing="2" style="width: 350px; height: 55px; margin: 10px 0 2px 0;border: 1px solid #ddd"><tr>
+							<td style="background-color: #ccc;color:#313131;text-align:center;" colspan="3">'.$this->description_ref .'</td>
+						</tr>
+						<tr>
+							<td rowspan="3" style="width:110px;padding: 0px 5px 0px 5px;vertical-align: middle;"><img src="'.WP_PLUGIN_URL . "/" . plugin_basename( dirname(__FILE__)) . '/images/mb_payment.jpg" style="margin-bottom: 0px; margin-right: 0px;"/></td>
+							<td style="width:100px;">ENTIDADE:</td>
+							<td style="font-weight:bold;width:245px;">'.$fivesdraft->entity .'</td>
+						</tr>
+						<tr>
+							<td>REFER&Ecirc;NCIA:</td>
+							<td style="font-weight:bold;">'.$fivesdraft->reference.'</td>
+						</tr>
+						<tr>
+							<td>VALOR:</td>
+							<td style="font-weight:bold;">'.$order_total.' &euro;</td>
+						</tr>
+					</table>';
+			}
+			if (isset($_GET["ref"])) $woocommerce->cart->empty_cart();
 
 		}
 
@@ -612,6 +622,11 @@ function woocommerce_hipaymultibanco_init() {
 		global $woocommerce;
 	
 		if (isset($woocommerce->cart)){
+			$plugin_option =get_option( 'woocommerce_hipaymultibanco_settings');
+			if ( isset($plugin_option['hw_max_amount']) )
+				$hw_max_amount = $plugin_option['hw_max_amount'];
+			else
+				$hw_max_amount = 0;
 			$currency_symbol = get_woocommerce_currency_symbol();
 			$total_amount = $woocommerce->cart->get_total();
 			$total_amount = str_replace($currency_symbol,"", $total_amount);
@@ -620,7 +635,7 @@ function woocommerce_hipaymultibanco_init() {
 			$decimals_sep = wp_specialchars_decode(stripslashes(get_option( 'woocommerce_price_decimal_sep')), ENT_QUOTES);
 			if ( $decimals_sep != ".") $total_amount = str_replace($decimals_sep,".", $total_amount);
 			$total_amount = floatval( preg_replace( '#[^\d.]#', '',  $total_amount) );
-			if ($total_amount > 2500) unset($methods['hipaymultibanco']); 
+			if ($total_amount > $hw_max_amount && $hw_max_amount > 0) unset($methods['hipaymultibanco']); 
 		}
 		return $methods;
 	}
@@ -636,3 +651,4 @@ function woocommerce_hipaymultibanco_init() {
 	add_filter('woocommerce_payment_gateways', 'add_hipaymultibanco_gateway' );
 
 }
+
