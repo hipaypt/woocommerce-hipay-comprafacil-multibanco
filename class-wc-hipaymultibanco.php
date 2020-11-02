@@ -563,8 +563,12 @@ function woocommerce_hipaymultibanco_init() {
 			}
 
 			$ch = sha1($this->salt.$order_id);
-			$callback_url = site_url().'/wc-api/WC_HipayMultibanco/?order=' . $order_id . "&" . "ch=" . $ch;
-
+            $permalink_structure = get_option( 'permalink_structure' );		
+			if ($permalink_structure == "")
+				$callback_url = site_url().'?wc-api=WC_HipayMultibanco&order=' . $order_id . "&" . "ch=" . $ch;
+			else
+				$callback_url = site_url().'/wc-api/WC_HipayMultibanco/?order=' . $order_id . "&" . "ch=" . $ch;
+				
 			$order = new WC_Order( $order_id );              
 
 			try
