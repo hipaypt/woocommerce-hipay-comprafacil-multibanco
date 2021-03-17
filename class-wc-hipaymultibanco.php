@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce HiPay Comprafacil Multibanco
 Plugin URI: http://www.hipaycomprafacil.com
 Description: Plugin WooCommerce para Pagamentos por Multibanco via HiPay. Para utilizar efetue registo em <a href="http://www.hipaycomprafacil.pt" target="_blank">HiPay Comprafacil</a> para utilizar este m&oacute;dulo. Para mais informa&ccedil;&otilde;es envie email para <a href="mailto:hipay.portugal@hipay.com" target="_blank">hipay.portugal@hipay.com</a>.
-Version: 1.4.6
+Version: 1.4.7
 Author: Hi-Pay Portugal
 Author URI: https://www.hipaycomprafacil.com
 */
@@ -483,13 +483,15 @@ function woocommerce_hipaymultibanco_init() {
 						if ($this->sandbox == "yes") $wsURL = "https://hm.comprafacil.pt/SIBSClickTeste/webservice/comprafacilWS.asmx?wsdl";
 					}
 
+			                $ref = filter_var($_GET['ref'], FILTER_SANITIZE_STRING);
+                    			$ent = filter_var($_GET['ent'], FILTER_SANITIZE_STRING);
+					$transaction_id = preg_replace('/\s+/','',$ent . $ref);
+
 					$parameters = array(
-						"reference" => $_GET["ref"],
+						"reference" => $ref,
 						"username" => $this->username,
 						"password" => $this->password
 						);
-
-
 
 					$client = new SoapClient($wsURL);
 
@@ -506,8 +508,8 @@ function woocommerce_hipaymultibanco_init() {
 								wc_reduce_stock_levels($order_id);
 								$order->add_order_note('Stock atualizado depois de pagamento' );
 							}
-							//$order->update_status('processing', __("Ref. MULTIBANCO Paga", "woothemes" ).$transid, 0 );
-							$order->payment_complete();
+
+							$order->payment_complete($transaction_id);
 
 						} else
 						{
