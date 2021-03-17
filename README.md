@@ -1,1 +1,1 @@
-# Multibanco for Woocommerce 3.x
+# Multibanco for Woocommerce
