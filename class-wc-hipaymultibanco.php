@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce HiPay Comprafacil Multibanco
 Plugin URI: https://github.com/hipaypt/woocommerce-hipay-comprafacil-multibanco
 Description: WooCommerce plugin for Multibanco payments with HiPay. HiPay Professional account is mandatory.
-Version: 1.5.0
+Version: 1.5.1
 Author: Hi-Pay Portugal
 Author URI: https://www.hipay.com
 */
@@ -465,7 +465,7 @@ function woocommerce_hipaymultibanco_init()
 
 			$order_total = $order->get_total();
 			$order_status = $order->get_status();
-			$order_payment_method = get_post_meta($order->get_id(), '_payment_method', true);
+			$order_payment_method = $order->get_payment_method(); //get_post_meta($order->get_id(), '_payment_method', true);
 			$order_id = $order->get_id();
 
 			if ($order_status !== 'on-hold' || $order_payment_method !== 'hipaymultibanco')
@@ -529,7 +529,7 @@ function woocommerce_hipaymultibanco_init()
 						//get status
 						$order_c_id = $order->get_id();
 
-						$cur_payment_method = get_post_meta($order_c_id, '_payment_method', true);
+						$cur_payment_method = $order->get_payment_method();	//get_post_meta($order_c_id, '_payment_method', true);
 						//update order if! wc-pending or wc-on-hold
 						if ($cur_payment_method == 'hipaymultibanco' && ($order->post->post_status == "wc-pending" || $order->post->post_status == "wc-on-hold")) {
 							$order->update_status('cancelled', __("Ref. MULTIBANCO Expirada: ", "woothemes"), 0);
