@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce HiPay Comprafacil Multibanco
 Plugin URI: https://github.com/hipaypt/woocommerce-hipay-comprafacil-multibanco
 Description: WooCommerce plugin for Multibanco payments with HiPay. HiPay Professional account is mandatory.
-Version: 1.5.1
+Version: 1.5.2
 Author: Hi-Pay Portugal
 Author URI: https://www.hipay.com
 */
@@ -51,6 +51,8 @@ function woocommerce_hipaymultibanco_init()
 			$this->timeLimitDays = $this->get_option('timeLimitDays');
 			if ($this->max_amount == "")
 				$this->max_amount = 0;
+			$this->supports = array( 'payments', 'products', 'woocommerce-blocks' );
+
 			$this->logActions = $this->get_option('logActions');
 
 			$this->logger = wc_get_logger();
@@ -661,7 +663,7 @@ function woocommerce_hipaymultibanco_init()
 			$billing_data['h_client_postcode'] = "";
 
 			$billing_data['h_client_name'] =  (isset($billing_data['_billing_first_name'][0])) ? $billing_data['_billing_first_name'][0] : $order->get_billing_first_name();
-			$billing_data['h_client_name'] .= (isset($billing_data['_billing_last_name'][0])) ? $billing_data['_billing_last_name'][0] : $order->get_billing_last_name();
+			$billing_data['h_client_name'] .=  " " . (isset($billing_data['_billing_last_name'][0])) ? $billing_data['_billing_last_name'][0] : $order->get_billing_last_name();
 			$billing_data['h_client_email'] = (isset($billing_data['_billing_email'][0])) ? $billing_data['_billing_email'][0] : $order->get_billing_email();
 			$billing_data['h_client_phone'] = (isset($billing_data['_billing_phone'][0])) ? $billing_data['_billing_phone'][0] : $order->get_billing_phone();
 			$billing_data['h_client_city'] =  (isset($billing_data['_billing_city'][0])) ? $billing_data['_billing_city'][0] : $order->get_billing_city();
@@ -781,5 +783,16 @@ function woocommerce_hipaymultibanco_init()
 	}
 
 	add_filter('woocommerce_payment_gateways', 'add_hipaymultibanco_gateway');
+
+	
+	add_action('woocommerce_blocks_loaded', function() {
+
+		if (class_exists('Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
+			require_once  'includes/wc_hipaymultibanco_blocks_integration.php';
+			add_action('woocommerce_blocks_payment_method_type_registration', function($registry) {
+				$registry->register(new WC_HiPayMultibanco_Blocks_Integration());
+			});
+		}
+	});	
 
 }
